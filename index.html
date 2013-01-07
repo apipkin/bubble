@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bubble</title>
+    <link rel="stylesheet" type="text/css" href="css/base.css">
+    <script src="http://yui.yahooapis.com/3.8.0/build/yui/yui-min.js"></script>
+</head>
+<body>
+<div id="board"></div>
+<script>
+YUI.add('bubble', function(Y){
+
+    Y.BubbleBreak = Y.Base.create('bubble', Y.Widget, [], {
+
+        classNames: {
+            bubble: 'bubble',
+            color: 'bubble-',
+            row: 'bubble-row'
+        },
+
+        initializer: function() {
+            this._bubbles = [];
+            this._curColor = null;
+            this._selectedCount = 0;
+        },
+
+        renderUI: function() {
+            var bb = this.get('boundingBox'),
+                row = 0,
+                maxRow = this.get('rows');
+
+            for (row=0; row < maxRow; row++) {
+                bb.append(this._makeRow(row));
+            }
+        },
+
+        bindUI: function() {
+            this.get('boundingBox').delegate('click', this._bubbleClick, '.' + this.classNames.bubble, this);
+        },
+
+        _makeRow: function(row) {
+            var rowNode = Y.Node.create(Y.Lang.sub(this.get('rowTemp'), {
+                    rowClass: this.classNames.row
+                })),
+                col = 0,
+                maxCol = this.get('columns'),
+                bubble = null;
+
+            this._bubbles[row] = [];
+
+            for (col=0; col < maxCol; col++) {
+                bubble = this._makeBubble(col, row)
+                rowNode.append(bubble);
+                this._bubbles[row][col] = bubble;
+            }
+
+            return rowNode;
+        },
+
+        _makeBubble: function(col, row) {
+            var color = this._getColor(),
+                bubble = Y.Node.create(Y.Lang.sub(this.get('bubbleTemp'), {
+                    bubbleClass: this.classNames.bubble,
+                    colorClass: this.classNames.bubble + '-' + color,
+                    color: color,
+                    col: col,
+                    row: row
+                }));
+
+                bubble.setStyles({
+                    left: col * 20 + 'px',
+                    top: row * 20 + 'px'
+                });
+
+            return bubble;
+        },
+
+        _getColor: function() {
+            var colors = this.get('colors');
+            return colors[Math.floor(Math.random() * colors.length)];
+        },
+
+        _bubbleClick: function(e) {
+            var bubble = e.currentTarget;
+
+            if (bubble.hasClass('bubble-selected')) {
+                if (this._selectedCount >= this.get('minSelected')) {
+                    this._clearSelected();
+                } else {
+                    this._clearSelection();
+                }
+            } else {
+                this._clearSelection();
+                this._curColor = bubble.getData('color');
+                this._markBubble(bubble);
+                this._findAdjacent(bubble);
+            }
+        },
+
+        _clearSelected: function() {
+            this._selectedCount = 0;
+
+            this.get('boundingBox').all('.bubble-selected').addClass('bubble-removed').removeClass('bubble-selected');
+
+            var shift = this.get('shift'),
+                x = 0,
+                y = 0;
+
+            if (shift.indexOf('l') >= 0) {
+                // shifting left
+                x = -1;
+            } else if (shift.indexOf('r') >= 0) {
+                // shifting right
+                x = 1;
+            } else if (shift.indexOf('t') >= 0) {
+                // shifting top
+                y = -1;
+            } else if (shift.indexOf('b') >= 0) {
+                // shifting bottom
+                y = 1;
+            }
+
+        },
+
+        _clearSelection: function() {
+            this._selectedCount = 0;
+            this.get('boundingBox').all('.bubble-selected').removeClass('bubble-selected');
+        },
+
+        _findAdjacent: function(bubble) {
+            if (!bubble) {
+                return;
+            }
+
+            var row = parseInt(bubble.getData('row')),
+                col = parseInt(bubble.getData('col')),
+                cols = this.get('columns'),
+                rows = this.get('rows'),
+                left = null,
+                right = null,
+                up = null,
+                down = null;
+
+            // left
+            if (col > 0) {
+                left = this._bubbles[row][col-1];
+                if (left && this._testBubble(left)) {
+                    this._markBubble(left);
+                } else {
+                    left = null;
+                }
+            }
+
+            // right
+            if (col < cols) {
+                right = this._bubbles[row][col+1];
+                if (right && this._testBubble(right)) {
+                    this._markBubble(right);
+                } else {
+                    right = null;
+                }
+            }
+
+            // up
+            if (row > 0) {
+                up = this._bubbles[row-1][col];
+                if (up && this._testBubble(up)) {
+                    this._markBubble(up);
+                } else {
+                    up = null;
+                }
+            }
+
+            // down
+            if (row < rows && this._bubbles[row+1]) {
+                down = this._bubbles[row+1][col];
+                if (down && this._testBubble(down)) {
+                    this._markBubble(down);
+                } else {
+                    down = null;
+                }
+            }
+
+            // mark them
+            this._findAdjacent(left);
+            this._findAdjacent(right);
+            this._findAdjacent(up);
+            this._findAdjacent(down);
+        },
+
+        _testBubble: function(bubble) {
+            return (!bubble.hasClass('bubble-selected') && bubble.getData('color') === this._curColor);
+        },
+
+        _markBubble: function(bubble) {
+            bubble.toggleClass('bubble-selected', true);
+            this._selectedCount++;
+        }
+
+    }, {
+        ATTRS: {
+            colors: {
+                value: ['red', 'blue'], //['red', 'orange', 'green', 'blue', 'purple']
+            },
+
+            bubbleTemp: {
+                value: '<span class="{bubbleClass} {colorClass}" data-col="{col}" data-row="{row}" data-color="{color}"><span class="color"></span></span>'
+            },
+
+            rowTemp: {
+                value: '<div class="{rowClass}"></div>'
+            },
+
+            columns: {
+                value: 10
+            },
+
+            rows: {
+                value: 10
+            },
+
+            shift: {
+                value: 'c' // tl, t, tr, r, br, b, bl, l, c
+            },
+
+            minSelected: {
+                value: 3
+            }
+        }
+    });
+
+}, '0.1', {requires: ['base-build', 'widget', 'transition']});
+
+YUI().use('bubble', function(Y){
+    var bk = new Y.BubbleBreak({
+        columns: 20
+    });
+
+    bk.render('#board');
+});
+</script>
+</body>
+</html>

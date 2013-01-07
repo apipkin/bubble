@@ -1,0 +1,43 @@
+#board {
+    position: relative;
+}
+
+.bubble {
+    display: inline-block;
+    position: absolute;
+}
+.bubble .color{
+    border: 0px solid black;
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    border-radius: 11px;
+    box-shadow: inset 2px 2px 1px 1px rgba(255,255,255,0.3);
+}
+.bubble-selected .color {
+    opacity: 0.5;
+}
+.bubble-removed {
+    background: orange;
+}
+
+.bubble-red .color {
+    border-color: #cc0000;
+    background: #ff0000;
+}
+.bubble-orange .color {
+    border-color: #cc3300;
+    background: #ff5500;
+}
+.bubble-green .color {
+    border-color: #00cc00;
+    background: #00ff00;
+}
+.bubble-blue .color {
+    border-color: #0000cc;
+    background: #0000ff;
+}
+.bubble-purple .color {
+    border-color: #cc00cc;
+    background: #ff00ff;
+}
